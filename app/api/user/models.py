@@ -1,4 +1,4 @@
-from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy import PrimaryKeyConstraint, UniqueConstraint
 from app import db, ma
 
 class User(db.Model):
@@ -8,10 +8,20 @@ class User(db.Model):
             'ID',
             name='PK_User_ID'
         ),
+        UniqueConstraint(
+            "UserName",
+            name="UNQ_UserName"
+        ),
+        UniqueConstraint(
+            "Email",
+            name="UNQ_Email"
+        ),
     )
 
     ID = db.Column(db.Integer)
-    Name = db.Column(db.String(100))
+    FirstName = db.Column(db.String(100))
+    LastName = db.Column(db.String(100))
+    UserName = db.Column(db.String(100))
     Email = db.Column(db.String(320))
 
     def __repr__(self):
