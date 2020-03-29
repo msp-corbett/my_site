@@ -1,5 +1,11 @@
 from flask import Flask, jsonify
 from flask.wrappers import Response
+from flask_sqlalchemy import SQLAlchemy
+from flask_marshmallow import Marshmallow
+
+db = SQLAlchemy()
+ma = Marshmallow()
+
 
 def create_app(env: str = None) -> Flask:
     """ Flask Application Factory """
@@ -9,6 +15,10 @@ def create_app(env: str = None) -> Flask:
     
     app = Flask(__name__)
     app.config.from_object(config_by_name[env or "test"])
+
+    db.init_app(app)
+
+    ma.init_app(app)
 
     register_routes(app)
 

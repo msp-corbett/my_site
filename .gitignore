@@ -1,3 +1,4 @@
 __pycache__
-*.pycs
+*.pyc
 .env
+*.db

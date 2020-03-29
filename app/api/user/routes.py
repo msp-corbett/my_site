@@ -1,5 +1,7 @@
 from flask import jsonify
 from flask_classful import FlaskView, route
+from app import db
+from .models import User, UserSchema
 
 users = [
     {
@@ -17,16 +19,17 @@ users = [
 class UserView(FlaskView):
     trailing_slash = False
 
-
     @route('')
     @route('/<int:pk_id>')
     def get(self, pk_id=None):
         if pk_id:
-            data, response = next((user for user in users if user.get('id') == pk_id), {'Error': 'User does not exist.'}), 200
+            schema = UserSchema()
+            data = db.session.query(User).filter((User.ID == pk_id)).first()
         else:
-            data, response = users, 200
+            schema = UserSchema(many=True)
+            data = db.session.query(User).all()
         
-        return jsonify(data), response
+        return schema.jsonify(data)
 
 
     def post(self,):
