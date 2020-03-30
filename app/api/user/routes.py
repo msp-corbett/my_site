@@ -65,13 +65,16 @@ class UserView(FlaskView):
 
 
     def put(self,):
-        pass
+        """ PUT not supported on model that generates incremental Primary Key """
+        return {"message": "method not allowed."}, 405
 
-
+    
+    @route('/<int:pk_id>')
     def patch(self, pk_id):
         pass
 
-
+    
+    @route('/<int:pk_id>')
     def delete(self): 
         pass
 
