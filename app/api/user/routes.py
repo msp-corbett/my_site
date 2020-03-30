@@ -5,23 +5,37 @@ from flask_classful import FlaskView, route
 from app import db
 from .models import User, UserSchema
 
+#TODO add type hints
 
 class UserView(FlaskView):
     trailing_slash = False
 
     def index(self,):
+        """ Index route to provide list of Users """
+
+        #TODO add filter/search mechanism. Limit/paginate number of results
         schema = UserSchema(many=True)
         data = db.session.query(User).all()
+        
         return schema.jsonify(data)
 
 
     def get(self, pk_id):
+        """ Get method to retrieve specific user.
+        
+        Keyword arguments:
+        pk_id -- Primary Key value of User Model
+
+        """
         schema = UserSchema()
         data = db.session.query(User).filter((User.ID == pk_id)).first()
+        
         return schema.jsonify(data)
 
 
     def post(self,):
+        """ POST method to create user record. """
+
         schema = UserSchema()
         json_data = request.get_json()
         
@@ -65,10 +79,32 @@ class UserView(FlaskView):
 
     def put(self, pk_id):
         """ PUT not supported on model that generates incremental Primary Key """
+        #TODO Allow method only if record already exists.
+
         return {"message": "method not allowed."}, 405
 
     
     def patch(self, pk_id):
+        """ Patch method to update part(s) of User model.
+
+        Keyword arguments:
+        pk_id -- Primary Key value of User Model
+
+        Inspired by ConnectWise API.
+        Patch body needs to be an array containing dict(s) of update instruction.
+        Example:
+            import requests
+            patch = [
+                {
+                    'op': 'replace',
+                    'path': 'FirstName',
+                    'value': 'Jimmy'
+                }
+            ]
+
+            requets.patch('http://server/api/user/1', json=patch)
+
+        """
         record_query = db.session.query(User).filter((User.ID == pk_id)).first()
         schema = UserSchema()
 
@@ -111,6 +147,12 @@ class UserView(FlaskView):
 
     
     def delete(self, pk_id): 
+        """ Delete method to remove specific user.
+        
+        Keyword arguments:
+        pk_id -- Primary Key value of User Model
+
+        """
         user = db.session.query(User).filter((User.ID == pk_id)).first()
 
         if user:
