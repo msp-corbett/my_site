@@ -1,8 +1,11 @@
 from sqlalchemy import exc, or_
 from marshmallow import ValidationError
+from webargs import fields
+from webargs.flaskparser import use_args
 from flask import jsonify, request
 from flask_classful import FlaskView, route
 from app import db
+from app.api.utils import APIError, filter_query
 from .models import User, UserSchema
 
 #TODO add type hints
@@ -10,14 +13,29 @@ from .models import User, UserSchema
 class UserView(FlaskView):
     trailing_slash = False
 
-    def index(self,):
-        """ Index route to provide list of Users """
+    def __init__(self,):
+        super().__init__()
+        self.model = User
+        self.schema = UserSchema
+        # Use tablename, otherwise overwite this for messages.
+        self.model_str = self.model.__tablename__
 
-        #TODO add filter/search mechanism. Limit/paginate number of results
-        schema = UserSchema(many=True)
-        data = db.session.query(User).all()
-        
-        return schema.jsonify(data)
+
+    @use_args({'filters': fields.Str(missing=''), 'pageSize': fields.Int(missing=25), 'page': fields.Int(missing=1)})
+    def index(self, args):
+        """ Index route to provide list of Users """
+        if args['filters']:
+            try:
+                data = filter_query(
+                    query=db.session.query(self.model),
+                    raw_filters=args['filters'],
+                    model=self.model)
+            except APIError as err:
+                return {"message": err.error_source}, err.error_code
+        else:
+            data = db.session.query(self.model)
+                
+        return self.schema(many=True).jsonify(data)
 
 
     def get(self, pk_id):
@@ -27,52 +45,51 @@ class UserView(FlaskView):
         pk_id -- Primary Key value of User Model
 
         """
-        schema = UserSchema()
-        data = db.session.query(User).filter((User.ID == pk_id)).first()
+        data = db.session.query(self.model).filter((self.model.ID == pk_id)).first()
         
-        return schema.jsonify(data)
+        return self.schema().jsonify(data)
 
 
     def post(self,):
         """ POST method to create user record. """
 
-        schema = UserSchema()
         json_data = request.get_json()
         
         if not json_data:
             return {"message": "No input data provided"}, 400
         
         try:
-            data = schema.load(json_data)
+            data = self.schema.load(json_data)
         except ValidationError as err:
             return err.messages, 422
         
+        # Filter on unique fields
         user_name, email = data["UserName"], data["Email"]
         
-        user = db.session.\
+        record = db.session.\
             query(
-                User).\
+                self.model).\
             filter(
                 or_(
-                    (User.Email == email),
-                    (User.UserName == user_name))).\
+                    (self.model.Email == email),
+                    (self.model.UserName == user_name))).\
             first()
         
-        if user is None:
-            user = User(
+        if record is None:
+            record = self.model(
                 FirstName=data['FirstName'],
                 LastName=data['LastName'],
                 UserName=user_name,
                 Email=email)
             try:
-                db.session.add(user)
+                db.session.add(record)
                 db.session.commit()
-                data, response = {"message": f"Created user: {user_name}"}, 200
+                data, response = {"message": f"Created {self.model_str}: {user_name}"}, 200
             except exc.SQLAlchemyError as e:
                 db.session.rollback()
-                data, response = {"message": f"Could not create uesr: {user_name} with email: {email}."}, 200
+                data, response = {"message": f"Could not create {self.model_str}: {user_name}."}, 200
         else:
-            data, response = {"message": f"User with {user_name} or {email} already exists."}, 200
+            data, response = {"message": f"{self.model_str} with {user_name} or {email} already exists."}, 200
 
         return data, response
 
@@ -105,8 +122,7 @@ class UserView(FlaskView):
             requets.patch('http://server/api/user/1', json=patch)
 
         """
-        record_query = db.session.query(User).filter((User.ID == pk_id)).first()
-        schema = UserSchema()
+        record_query = db.session.query(self.model).filter((self.model.ID == pk_id)).first()
 
         # User agent should know target resource via GET request.
         if not record_query:
@@ -130,7 +146,7 @@ class UserView(FlaskView):
 
         # Validate request data
         try:
-            schema.load(apply_patch)
+            self.schema().load(apply_patch)
         except ValidationError as err:
             return {'message': err.messages}, 400
 
@@ -138,10 +154,10 @@ class UserView(FlaskView):
             for k, v in apply_patch.items():
                 setattr(record_query, k, v)
             db.session.commit()
-            data, code = {'message': f"User updated."}, 200
+            data, code = {'message': f"{self.model_str} updated."}, 200
         except (exc.SQLAlchemyError, TypeError):
             db.session.rollback()
-            data, code = {"message": "Record could not be updated."}, 500
+            data, code = {"message": f"{self.model_str} record could not be updated."}, 500
 
         return data, code
 
@@ -153,18 +169,18 @@ class UserView(FlaskView):
         pk_id -- Primary Key value of User Model
 
         """
-        user = db.session.query(User).filter((User.ID == pk_id)).first()
+        record = db.session.query(self.model).filter((self.model.ID == pk_id)).first()
 
-        if user:
+        if record:
             try:
-                db.session.delete(user)
+                db.session.delete(record)
                 db.session.commit()
-                data, response = {"message": "record deleted."}, 200
+                data, response = {"message": f"{self.model_str} record deleted."}, 200
             except exc.SQLAlchemyError:
                 db.session.rollback()
-                data, response = {"message": "Record could not be deleted."}, 500
+                data, response = {"message": f"{self.model_str} record could not be deleted."}, 500
         else:
-            data, response = {"message": "No matching user."}, 404
+            data, response = {"message": f"No matching {self.model_str} record."}, 404
         
         return data, response
 
