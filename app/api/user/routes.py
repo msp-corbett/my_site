@@ -1,7 +1,5 @@
 from sqlalchemy import exc, or_
 from marshmallow import ValidationError
-from webargs import fields
-from webargs.flaskparser import use_args
 from flask import jsonify, request
 from flask_classful import FlaskView, route
 from app import db
@@ -21,9 +19,13 @@ class UserView(FlaskView):
         self.model_str = self.model.__tablename__
 
 
-    @use_args({'filters': fields.Str(missing=''), 'pageSize': fields.Int(missing=25), 'page': fields.Int(missing=1)})
-    def index(self, args):
+    def index(self, ):
         """ Index route to provide list of Users """
+        args = {
+            'filters': request.args.get('filters', ''),
+            'pageSize': request.args.get('pageSize', 25),
+            'page': request.args.get('page', 1)
+        }
         if args['filters']:
             try:
                 data = filter_query(
