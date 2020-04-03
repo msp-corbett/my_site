@@ -15,6 +15,7 @@ class UserView(FlaskView):
         super().__init__()
         self.model = User
         self.schema = UserSchema
+        self.update_filter = ['UserName', 'Email']
         # Use tablename, otherwise overwite this for messages.
         self.model_str = self.model.__tablename__
 
@@ -61,28 +62,27 @@ class UserView(FlaskView):
             return {"message": "No input data provided"}, 400
         
         try:
-            data = self.schema.load(json_data)
+            data = self.schema().load(json_data)
         except ValidationError as err:
             return err.messages, 422
         
         # Filter on unique fields
+        if self.update_filter:
+            for f in self.update_filter:
+                _filter = (getattr(self.model, f) == data[f])
+
         user_name, email = data["UserName"], data["Email"]
         
         record = db.session.\
             query(
                 self.model).\
             filter(
-                or_(
-                    (self.model.Email == email),
-                    (self.model.UserName == user_name))).\
+                self.update_filter).\
             first()
         
         if record is None:
             record = self.model(
-                FirstName=data['FirstName'],
-                LastName=data['LastName'],
-                UserName=user_name,
-                Email=email)
+                **data)
             try:
                 db.session.add(record)
                 db.session.commit()
