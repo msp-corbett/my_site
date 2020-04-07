@@ -2,6 +2,7 @@ from sqlalchemy import exc, or_
 from marshmallow import ValidationError
 from flask import jsonify, request, Response
 from flask_classful import FlaskView, route
+from app import db
 
 class APIError(Exception):
     """ Exception to raise when API call errors
@@ -26,68 +27,81 @@ class BaseView(FlaskView):
         # Unique filters to check, Post, Put and Patch requets
         self.update_filter = None 
         # Use tablename, otherwise overwite this for messages.
-        self.model_str = self.model.__tablename__
+        self.model_str = None
 
-
+    
     def filter_query(self, query, raw_filters):
-    """
-        Modified version of accpeted answer from:
-        https://stackoverflow.com/questions/14845196/dynamically-constructing-filters-in-sqlalchemy
+        """
+            Modified version of accpeted answer from:
+            https://stackoverflow.com/questions/14845196/dynamically-constructing-filters-in-sqlalchemy
 
-        1 - Split the desired filters out from filters url argument
-        2 - split each filter into the Column corresponding to the Model.Column, the filter operator and the search value
-        3 - using a lambda funciton create corresponding SQLAlchemy ORM Internal
-          - https://docs.sqlalchemy.org/en/13/orm/internals.html
-        4 - Create and chain the filter(s) to the query.
+            1 - Split the desired filters out from filters url argument
+            2 - split each filter into the Column corresponding to the Model.Column, the filter operator and the search value
+            3 - using a lambda funciton create corresponding SQLAlchemy ORM Internal
+            - https://docs.sqlalchemy.org/en/13/orm/internals.html
+            4 - Create and chain the filter(s) to the query.
 
-        Example:
-        import requests
-        r = requests.get('http://server/api/user?filters=FirstName eq "Jimmy" AND LastName eq "Bob")
-    """
-    for filter_ in raw_filters.split(' AND '):
-        try:
-            key, op, value = filter_.split(' ', maxsplit=2)
-        except ValueError:
-            raise APIError(400, f'Invalid filter: {filter_}')
+            Example:
+            import requests
+            r = requests.get('http://server/api/user?filters=FirstName eq "Jimmy" AND LastName eq "Bob")
+        """
 
-        value = value.strip("'")
-        value = value.strip('"')
-
-        column = getattr(self.model, key, None)
-        if not column:
-            raise APIError(400, f'Invalid field: {key}')
-
-        if op == 'in':
-            values = value.split(',')
-            values = [v.strip(' ') for v in values]
-            filt = column.in_(values)
-        else:
+        for filter_ in raw_filters.split(' AND '):
             try:
-                attr = list(filter(lambda e: hasattr(column, f"{e}"), [f'{op}', f'{op}_', f'__{op}__']))[0]
-            except IndexError:
-                raise APIError(400, f'Invalid operation: {op}')
-            if value == 'null':
-                value = None
+                key, op, value = filter_.split(' ', maxsplit=2)
+            except ValueError:
+                raise APIError(400, f'Invalid filter: {filter_}')
 
-        filt = getattr(column, attr)(value)
-        query = query.filter(filt)
-    return query
+            value = value.strip("'")
+            value = value.strip('"')
 
-    #Todo {"filter_key": "filter_value"}
-    def unq_filter(self, filter_dict):
+            column = getattr(self.model, key, None)
+            if not column:
+                raise APIError(400, f'Invalid field: {key}')
+
+            if op == 'in':
+                values = value.split(',')
+                values = [v.strip(' ') for v in values]
+                filt = column.in_(values)
+            else:
+                try:
+                    attr = list(filter(lambda e: hasattr(column, f"{e}"), [f'{op}', f'{op}_', f'__{op}__']))[0]
+                except IndexError:
+                    raise APIError(400, f'Invalid operation: {op}')
+                if value == 'null':
+                    value = None
+
+            filt = getattr(column, attr)(value)
+            query = query.filter(filt)
+        return query
+
+
+    def unq_filter(self, filter_dict: dict):
+        """ Create a single or set of filter for Unique fields on a model.
+
+        Keyword Arguments;
+
+        filter_dict: contains Model Column and value in key:value pair.
+
+        If there are mulitple Unqiue fields, will return tuple in 
+        
+        """
         _return_filter = []
         for key,value in filter_dict:
             column = getattr(self.model, key)
             _filter = getattr(column, '__eq__')(value)
-            _return_filter.append_filter
+            _return_filter.append(_filter)
         
         if not _return_filter:
-            return ( 1 == 1)
+            # Always True filter to return if filter_dict fails to produce a filter
+            _return_filter = (1 == 1)
         else:
+            # Create an SQL 'OR' Filter for multiple fields 
             if len(_return_filter) > 1:
-                return or_(tuple(_return_filter))
-            else len(_return_filter):
-                return tuple(_return_filter)
+                _return_filter = or_(_return_filter)
+        
+        return _return_filter
+
 
     def index(self,) -> Response:
         """ Index route to provide list of Users """
@@ -99,10 +113,9 @@ class BaseView(FlaskView):
 
         if args['filters']:
             try:
-                data = filter_query(
+                data = self.filter_query(
                     query=db.session.query(self.model),
-                    raw_filters=args['filters'],
-                    model=self.model)
+                    raw_filters=args['filters'])
             except APIError as err:
                 return {"message": err.error_source}, err.error_code
         else:
@@ -137,7 +150,7 @@ class BaseView(FlaskView):
             return err.messages, 422
         
         update_dict = {f"{f}": data[f] for f in self.update_filter}
-        _unq_filter = unq_filter(update_dict)
+        _unq_filter = self.unq_filter(update_dict)
 
         record = db.session.\
             query(
