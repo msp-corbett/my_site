@@ -17,7 +17,7 @@ class APIError(Exception):
         self.error_source = error_source
 
 
-class BaseView(FlaskView):
+class ApiView(FlaskView):
     trailing_slash = False
 
     def __init__(self,):
@@ -165,12 +165,12 @@ class BaseView(FlaskView):
             try:
                 db.session.add(record)
                 db.session.commit()
-                data, response = {"message": f"Created {self.model_str}: {user_name}"}, 200
+                data, response = {"message": f"Created {self.model_str}"}, 200
             except exc.SQLAlchemyError as e:
                 db.session.rollback()
-                data, response = {"message": f"Could not create {self.model_str}: {user_name}."}, 200
+                data, response = {"message": f"Could not create {self.model_str}"}, 200
         else:
-            data, response = {"message": f"{self.model_str} with {user_name} or {email} already exists."}, 200
+            data, response = {"message": f"{self.model_str} already exists."}, 200
 
         return data, response
 

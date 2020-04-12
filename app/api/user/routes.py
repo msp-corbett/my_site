@@ -3,11 +3,11 @@ from marshmallow import ValidationError
 from flask import jsonify, request
 from flask_classful import FlaskView, route
 from app import db
-from app.api.utils import APIError, BaseView
+from app.api.utils import APIError, ApiView
 from .models import User, UserSchema
 
 
-class UserView(BaseView):
+class UserView(ApiView):
     def __init__(self,):
         super().__init__()
         self.model = User
