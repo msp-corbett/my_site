@@ -8,7 +8,7 @@ from database_initialiser.initialiser import Initialiser
 
 load_dotenv()
 
-app = create_app(environ.get("FLASK_ENV", 'development'))
+app = create_app(environ.get("FLASK_ENV", 'test'))
 db = SQLAlchemy(app)
 
 # Import models after db initialised but before Migration

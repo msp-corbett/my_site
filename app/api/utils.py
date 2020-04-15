@@ -87,7 +87,7 @@ class ApiView(FlaskView):
         
         """
         _return_filter = []
-        for key,value in filter_dict:
+        for key,value in filter_dict.items():
             column = getattr(self.model, key)
             _filter = getattr(column, '__eq__')(value)
             _return_filter.append(_filter)
@@ -98,7 +98,7 @@ class ApiView(FlaskView):
         else:
             # Create an SQL 'OR' Filter for multiple fields 
             if len(_return_filter) > 1:
-                _return_filter = or_(_return_filter)
+                _return_filter = or_(*_return_filter)
         
         return _return_filter
 
@@ -145,7 +145,7 @@ class ApiView(FlaskView):
             return {"message": "No input data provided"}, 400
         
         try:
-            data = self.schema.load(json_data)
+            data = self.schema().load(json_data)
         except ValidationError as err:
             return err.messages, 422
         

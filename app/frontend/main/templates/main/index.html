@@ -28,9 +28,7 @@
             var status = xhr.status;
             if (status === 0 || (status >= 200 && status < 400)) {
                 var user_data = JSON.parse(xhr.responseText);
-                console.log(user_data)
                 for (i=0; i<user_data.length; i++){
-                    console.log( user_data[i]["FirstName"]+' '+user_data[i]["LastName"])
                     let row = document.createElement("tr");
                     let data = document.createElement("td");
                     data.innerText =  user_data[i]['FirstName']+' '+user_data[i]['LastName'];
