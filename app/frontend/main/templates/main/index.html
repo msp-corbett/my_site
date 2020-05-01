@@ -24,21 +24,21 @@
 
         xhr.open("GET", "{{ url_for('user.UserView:index')}}", true);
         xhr.onreadystatechange = function () {
-        if(xhr.readyState === XMLHttpRequest.DONE) {
-            var status = xhr.status;
-            if (status === 0 || (status >= 200 && status < 400)) {
-                var user_data = JSON.parse(xhr.responseText);
-                for (i=0; i<user_data.length; i++){
-                    let row = document.createElement("tr");
-                    let data = document.createElement("td");
-                    data.innerText =  user_data[i]['FirstName']+' '+user_data[i]['LastName'];
-                    row.append(data);
-                    table.append(row);
+            if(xhr.readyState === XMLHttpRequest.DONE) {
+                var status = xhr.status;
+                if (status === 0 || (status >= 200 && status < 400)) {
+                    var user_data = JSON.parse(xhr.responseText);
+                    for (i=0; i<user_data.length; i++){
+                        let row = document.createElement("tr");
+                        let data = document.createElement("td");
+                        data.innerText = user_data[i]['FirstName'] +' '+ user_data[i]['LastName'];
+                        row.append(data);
+                        table.append(row);
+                    }
+                } else {
+                    alert("Could not retrieve users.")
                 }
-            } else {
-                alert("Could not retrieve users.")
             }
-        }
         };
         xhr.send();
     }

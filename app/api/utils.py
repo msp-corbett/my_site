@@ -176,17 +176,52 @@ class ApiView(FlaskView):
 
 
     def put(self, pk_id):
-        """ PUT not supported on model that generates incremental Primary Key """
-        #TODO Allow method only if record already exists.
+        """ PUT method to Update entire Record
 
-        return {"message": "method not allowed."}, 405
+        Keyword arguments:
+        pk_id -- Primary Key value of record Model
+
+        Note: Primary Key is created by Database Sequence, therefore
+        PUT method only works when record already exists.
+        Similar functionality to PATCH, but whole record needs to be
+        sent in request.
+        
+        """
+
+        record_query = db.session.query(self.model).get(pk_id)
+        
+        # User agent should know target resource via GET request.
+        if not record_query:
+            return {"message": "Record not found"}, 404
+
+        json_data = request.get_json()
+        
+        if not json_data:
+            return {"message": "No input data provided"}, 400
+        
+        try:
+            data = self.schema().load(json_data)
+        except ValidationError as err:
+            return err.messages, 422
+
+        try:
+            for k, v in data.items():
+                setattr(record_query, k, v)
+            db.session.commit()
+            data, code = {'message': f"{self.model_str} updated."}, 200
+        except (exc.SQLAlchemyError, TypeError):
+            db.session.rollback()
+            data, code = {"message": f"{self.model_str} record could not be updated."}, 500
+
+        return data, code
+        
 
     
     def patch(self, pk_id):
-        """ Patch method to update part(s) of User model.
+        """ Patch method to update part(s) of record model.
 
         Keyword arguments:
-        pk_id -- Primary Key value of User Model
+        pk_id -- Primary Key value of record Model
 
         Inspired by ConnectWise API.
         Patch body needs to be an array containing dict(s) of update instruction.
@@ -202,12 +237,14 @@ class ApiView(FlaskView):
 
             requets.patch('http://server/api/user/1', json=patch)
 
+        Update occurs similiary to PUT method, however patch doesn't require
+        whole record in request.  Allows for reduce bandwidth requests for larger models.
         """
         record_query = db.session.query(self.model).filter((self.model.ID == pk_id)).first()
 
         # User agent should know target resource via GET request.
         if not record_query:
-            return {"message": "Requested user not found"}, 404
+            return {"message": "Record not found"}, 404
         
         request_data = request.get_json(force=True, silent=True)
         if not request_data:
@@ -215,7 +252,7 @@ class ApiView(FlaskView):
 
         # Build patch from supplied data
         apply_patch = {}
-        allowed_operations = ("replace")
+        allowed_operations = ("replace",)
         for patch_data in request_data:
             try:
                 if patch_data.get("op").lower() not in allowed_operations:
@@ -244,10 +281,10 @@ class ApiView(FlaskView):
 
     
     def delete(self, pk_id): 
-        """ Delete method to remove specific user.
+        """ Delete method to remove specific record.
         
         Keyword arguments:
-        pk_id -- Primary Key value of User Model
+        pk_id -- Primary Key value of Model
 
         """
         record = db.session.query(self.model).filter((self.model.ID == pk_id)).first()
