@@ -13,6 +13,7 @@ db = SQLAlchemy(app)
 
 # Import models after db initialised but before Migration
 from app.api.user.models import *
+from app.api.widget.models import *
 
 migrate = Migrate(app, db)
 manager = Manager(app)

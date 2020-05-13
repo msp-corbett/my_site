@@ -24,41 +24,44 @@ from app import db, ma
 
 class Widget(db.Model):
     __tablename__ = 'Widget'
-    ID = db.Column(db.Integer)
+    ID = db.Column(db.Integer, primary_key=True)
     Name = db.Column(db.String(150))
     Size = db.Column(db.String(5))
-
-    fizzler = db.relationship("Fizzler", back_populates='Widget')
 
 
 class Fizzler(db.Model):
     __tablename__ = "Fizzler"
-    ID = db.Column(db.Intger)
+    ID = db.Column(db.Integer, primary_key=True)
     Name = db.Column(db.String(150))
     Color = db.Column(db.String(10))
     Speed = db.Column(db.Numeric(precision=5, scale=1))
-    WidgetID = db.Column(db.Integer)
+    WidgetID = db.Column(db.Integer, db.ForeignKey("Widget.ID"))
 
-    widget = db.relationship("Widget", back_populates='Fizzler')
+    widget = db.relationship("Widget", backref='fizzler')
+
 
 class Banger(db.Model):
     __tablename__ = "Banger"
-    ID = db.Column(db.Integer)
+    ID = db.Column(db.Integer, primary_key=True)
     Type = db.Column(db.String(3))
+    WidgetID = db.Column(db.Integer, db.ForeignKey("Widget.ID"))
 
-    widget = db.relationship("Widget", back_populates='Banger')
+    widget = db.relationship("Widget", backref='banger')
+
 
 class BangerSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Banger
 
+
 class FizzlerSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Fizzler
+
 
 class WidgetSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Widget
     
     fizzler = ma.Nested(FizzlerSchema)
-    banger = ma.Nested(BangerSchema).many()
+    banger = ma.Nested(BangerSchema)

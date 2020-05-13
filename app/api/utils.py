@@ -215,7 +215,6 @@ class ApiView(FlaskView):
 
         return data, code
         
-
     
     def patch(self, pk_id):
         """ Patch method to update part(s) of record model.
