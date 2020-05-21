@@ -9,6 +9,7 @@ class BaseConfig:
     DEBUG = False
     TRAP_HTTP_EXCEPTIONS = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    WTF_CSRF_CHECK_DEFAULT = False
 
 
 class DevelopmentConfig(BaseConfig):
@@ -17,6 +18,7 @@ class DevelopmentConfig(BaseConfig):
     TESTING = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{environ.get('DB_PATH')}\\app-dev.db"
+    WTF_CSRF_SECRET_KEY = environ.get("WTF_SECRET_KEY", "But1SaidN0NoN0!")
 
 
 class TestingConfig(BaseConfig):
@@ -27,6 +29,7 @@ class TestingConfig(BaseConfig):
     LOGIN_DISABLED = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI =  f"sqlite:///{environ.get('DB_PATH')}\\app-test.db"
+    WTF_CSRF_SECRET_KEY = environ.get("WTF_SECRET_KEY", "WeUnleashedAl10n")
 
 
 class ProductionConfig(BaseConfig):
@@ -36,6 +39,7 @@ class ProductionConfig(BaseConfig):
     TESTING = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI =  f"sqlite:///{environ.get('DB_PATH')}\\app-prod.db"
+    WTF_CSRF_SECRET_KEY = environ.get("WTF_SECRET_KEY", "T1meFlysByInTheYe110w&Green")
 
 
 EXPORT_CONFIGS: List[Type[BaseConfig]] = [

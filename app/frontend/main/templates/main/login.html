@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+{% extends 'main/layout.html' %}
+
+{% block body %}
+    <form>
+        {{ form.csrf_token }}
+        {{ form.UserName.label }}{{ form.UserName}}
+        {{ form.Password.label }}{{ form.Password}}
+        <input type="submit" value="Login">
+    </form>
+{% endblock %}

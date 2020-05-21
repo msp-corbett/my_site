@@ -64,4 +64,6 @@ class WidgetSchema(ma.SQLAlchemyAutoSchema):
         model = Widget
     
     fizzler = ma.Nested(FizzlerSchema)
-    banger = ma.Nested(BangerSchema)
+    banger = ma.Nested(
+        BangerSchema,
+        many=True)

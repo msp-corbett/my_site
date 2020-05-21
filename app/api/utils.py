@@ -1,8 +1,20 @@
 from sqlalchemy import exc, or_
 from marshmallow import ValidationError
-from flask import jsonify, request, Response
+from flask import jsonify, request, Response, make_response
 from flask_classful import FlaskView, route
 from app import db
+
+
+def output_json(data, code, headers=None):
+    content_type = 'application/json'
+    dumped = json.dumps(data)
+    if headers:
+        headers.update({'Content-Type': content_type})
+    else:
+        headers = {'Content-Type': content_type}
+    response = make_response(dumped, code, headers)
+    return response
+
 
 class APIError(Exception):
     """ Exception to raise when API call errors
@@ -19,6 +31,10 @@ class APIError(Exception):
 
 class ApiView(FlaskView):
     trailing_slash = False
+
+    excluded_methods = ['filter_query', 'unique_filter']
+
+    representations = {'application/json': output_json}
 
     def __init__(self,):
         super().__init__()
@@ -76,7 +92,7 @@ class ApiView(FlaskView):
         return query
 
 
-    def unq_filter(self, filter_dict: dict):
+    def unique_filter(self, filter_dict: dict):
         """ Create a single or set of filter for Unique fields on a model.
 
         Keyword Arguments;
@@ -131,7 +147,12 @@ class ApiView(FlaskView):
         pk_id -- Primary Key value of Model
 
         """
-        data = db.session.query(self.model).filter((self.model.ID == pk_id)).first()
+        data = db.session.\
+            query(
+                self.model).\
+            filter(
+                (self.model.ID == pk_id)).\
+            first()
         
         return self.schema().jsonify(data)
 
@@ -150,7 +171,7 @@ class ApiView(FlaskView):
             return err.messages, 422
         
         update_dict = {f"{f}": data[f] for f in self.update_filter}
-        _unq_filter = self.unq_filter(update_dict)
+        _unq_filter = self.unique_filter(update_dict)
 
         record = db.session.\
             query(
