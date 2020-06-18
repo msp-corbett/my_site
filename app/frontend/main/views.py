@@ -1,4 +1,5 @@
-from flask import render_template
+from os import path
+from flask import render_template, send_from_directory, current_app
 from flask_classful import FlaskView, route
 from flask_login import login_required
 from app import csrf
@@ -8,7 +9,7 @@ class MainView(FlaskView):
     trailing_slash = False
 
     decorators = []
-    
+
     @route('/')
     @route('/home')
     def index(self):
@@ -20,13 +21,12 @@ class MainView(FlaskView):
 
 
     @route('/login')
-    @csrf.protect
     def login(self):
         """ Render the login form.
 
         Authentication and Authorisation handled by app.backend.auth
         """
-        
+        csrf.protect()
         context = {
             'form': LoginForm()}
 
@@ -35,16 +35,23 @@ class MainView(FlaskView):
             **context)
 
     @route('/signup')
-    @csrf.protect
     def signup(self):
         """ Render the login form.
 
         Authentication and Authorisation handled by app.backend.auth
         """
-        
+        csrf.protect()
         context = {
             'form': SignUpForm()}
 
         return render_template(
             "main/login.html",
             **context)
+
+    @route('/favicon.ico')
+    def favicon(self):
+        return send_from_directory(
+            path.join(
+                current_app.root_path,
+                'static'),
+            'favicon.ico',)

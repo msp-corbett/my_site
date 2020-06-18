@@ -23,46 +23,87 @@ from app import db, ma
 # }
 
 class Widget(db.Model):
+    """ A widget class """
+
     __tablename__ = 'Widget'
-    ID = db.Column(db.Integer, primary_key=True)
-    Name = db.Column(db.String(150))
-    Size = db.Column(db.String(5))
+
+    ID = db.Column(
+        db.Integer,
+        primary_key=True)
+
+    Name = db.Column(
+        db.String(150))
+
+    Size = db.Column(
+        db.String(5))
 
 
 class Fizzler(db.Model):
-    __tablename__ = "Fizzler"
-    ID = db.Column(db.Integer, primary_key=True)
-    Name = db.Column(db.String(150))
-    Color = db.Column(db.String(10))
-    Speed = db.Column(db.Numeric(precision=5, scale=1))
-    WidgetID = db.Column(db.Integer, db.ForeignKey("Widget.ID"))
+    """ Fizzler extends widget model """
 
-    widget = db.relationship("Widget", backref='fizzler')
+    __tablename__ = "Fizzler"
+
+    ID = db.Column(
+        db.Integer, primary_key=True)
+
+    Name = db.Column(
+        db.String(150))
+
+    Color = db.Column(
+        db.String(10))
+
+    Speed = db.Column(
+        db.Numeric(precision=5, scale=1))
+
+    WidgetID = db.Column(
+        db.Integer,
+        db.ForeignKey("Widget.ID"))
+
+    widget = db.relationship(
+        "Widget",
+        backref='fizzler')
 
 
 class Banger(db.Model):
-    __tablename__ = "Banger"
-    ID = db.Column(db.Integer, primary_key=True)
-    Type = db.Column(db.String(3))
-    WidgetID = db.Column(db.Integer, db.ForeignKey("Widget.ID"))
+    """ Banger extends the widget """
 
-    widget = db.relationship("Widget", backref='banger')
+    __tablename__ = "Banger"
+
+    ID = db.Column(
+        db.Integer,
+        primary_key=True)
+
+    Type = db.Column(
+        db.String(3))
+
+    WidgetID = db.Column(
+        db.Integer, db.ForeignKey("Widget.ID"))
+
+    widget = db.relationship(
+        "Widget",
+        backref='banger')
 
 
 class BangerSchema(ma.SQLAlchemyAutoSchema):
+    """ Banger Schema
+    """
     class Meta:
         model = Banger
 
 
 class FizzlerSchema(ma.SQLAlchemyAutoSchema):
+    """ Fizzler Schema
+    """
     class Meta:
         model = Fizzler
 
 
 class WidgetSchema(ma.SQLAlchemyAutoSchema):
+    """ Widget Schema
+    """
     class Meta:
         model = Widget
-    
+
     fizzler = ma.Nested(FizzlerSchema)
     banger = ma.Nested(
         BangerSchema,

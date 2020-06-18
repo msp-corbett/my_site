@@ -1,3 +1,4 @@
+""" Functionality to Extend Flask Script ss"""
 from sqlalchemy import exc
 from flask_script import Command
 from app import db, encrypt
@@ -34,7 +35,11 @@ database = [
 ]
 
 class Initialiser(Command):
+    """ Initialise Test Database
+    """
     def run(self):
+        """
+        """
         if (input(
                 "Are you sure you want to drop all tables and recreate? (y/N)\n").\
             lower() == "y"):

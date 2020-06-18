@@ -1,18 +1,26 @@
+import json
 from sqlalchemy import exc, or_
 from marshmallow import ValidationError
-from flask import jsonify, request, Response, make_response
-from flask_classful import FlaskView, route
+from flask import  request, Response, make_response, current_app
+from flask_classful import FlaskView
 from app import db
 
 
 def output_json(data, code, headers=None):
+    """ Form api responses as JSON
+    """
+
     content_type = 'application/json'
+
     dumped = json.dumps(data)
+
     if headers:
         headers.update({'Content-Type': content_type})
     else:
         headers = {'Content-Type': content_type}
+
     response = make_response(dumped, code, headers)
+
     return response
 
 
@@ -45,7 +53,7 @@ class ApiView(FlaskView):
         # Use tablename, otherwise overwite this for messages.
         self.model_str = None
 
-    
+
     def filter_query(self, query, raw_filters):
         """
             Modified version of accpeted answer from:
@@ -127,6 +135,7 @@ class ApiView(FlaskView):
             'page': request.args.get('page', 1)
         }
 
+        current_app.logger.info('logger test')
         if args['filters']:
             try:
                 data = self.filter_query(
@@ -136,7 +145,7 @@ class ApiView(FlaskView):
                 return {"message": err.error_source}, err.error_code
         else:
             data = db.session.query(self.model)
-                
+   
         return self.schema(many=True).jsonify(data)
 
 
@@ -161,15 +170,15 @@ class ApiView(FlaskView):
         """ POST method to create record. """
 
         json_data = request.get_json()
-        
+
         if not json_data:
             return {"message": "No input data provided"}, 400
-        
+
         try:
             data = self.schema().load(json_data)
         except ValidationError as err:
             return err.messages, 422
-        
+
         update_dict = {f"{f}": data[f] for f in self.update_filter}
         _unq_filter = self.unique_filter(update_dict)
 
@@ -179,7 +188,7 @@ class ApiView(FlaskView):
             filter(
                 _unq_filter ).\
             first()
-        
+
         if record is None:
             record = self.model(
                 **data)
@@ -189,6 +198,7 @@ class ApiView(FlaskView):
                 data, response = {"message": f"Created {self.model_str}"}, 200
             except exc.SQLAlchemyError as e:
                 db.session.rollback()
+                current_app.logger.exception(e)
                 data, response = {"message": f"Could not create {self.model_str}"}, 200
         else:
             data, response = {"message": f"{self.model_str} already exists."}, 200
@@ -196,7 +206,7 @@ class ApiView(FlaskView):
         return data, response
 
 
-    def put(self, pk_id):
+    def put(self, pk_id) -> Response:
         """ PUT method to Update entire Record
 
         Keyword arguments:
@@ -206,20 +216,19 @@ class ApiView(FlaskView):
         PUT method only works when record already exists.
         Similar functionality to PATCH, but whole record needs to be
         sent in request.
-        
         """
 
         record_query = db.session.query(self.model).get(pk_id)
-        
+
         # User agent should know target resource via GET request.
         if not record_query:
             return {"message": "Record not found"}, 404
 
         json_data = request.get_json()
-        
+
         if not json_data:
             return {"message": "No input data provided"}, 400
-        
+
         try:
             data = self.schema().load(json_data)
         except ValidationError as err:
@@ -235,9 +244,9 @@ class ApiView(FlaskView):
             data, code = {"message": f"{self.model_str} record could not be updated."}, 500
 
         return data, code
-        
-    
-    def patch(self, pk_id):
+
+
+    def patch(self, pk_id) -> Response:
         """ Patch method to update part(s) of record model.
 
         Keyword arguments:
@@ -300,7 +309,7 @@ class ApiView(FlaskView):
         return data, code
 
     
-    def delete(self, pk_id): 
+    def delete(self, pk_id) -> Response: 
         """ Delete method to remove specific record.
         
         Keyword arguments:
@@ -321,4 +330,3 @@ class ApiView(FlaskView):
             data, response = {"message": f"No matching {self.model_str} record."}, 404
         
         return data, response
-

@@ -30,8 +30,8 @@ class AuthView(FlaskView):
         return user
 
     @route('/login', methods=['POST'])
-    @csrf.protect
     def login(self,):
+        csrf.protect()
         if current_user.is_authenticated:
             return redirect(url_for("main.MainView:login"))
 
@@ -51,8 +51,8 @@ class AuthView(FlaskView):
 
 
     @route('/signup', methods=['POST'])
-    @csrf.protect
     def signup(self,):
+        csrf.protect()
         form = SignUpForm()
 
         if form.validate_on_submit():
