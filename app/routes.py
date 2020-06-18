@@ -6,3 +6,4 @@ def register_routes(app):
     attach_frontend(app)
     attach_backend(app)
     attach_api(app)
+
