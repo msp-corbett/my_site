@@ -6,7 +6,6 @@ from flask_marshmallow import Marshmallow
 from flask_login import LoginManager
 from flask_wtf import CSRFProtect
 from flask_bcrypt import Bcrypt
-from logging.config import dictConfig
 
 db = SQLAlchemy()
 ma = Marshmallow()
@@ -21,18 +20,15 @@ def create_app(env: str = None) -> Flask:
     dictConfig({
         'version': 1,
         'formatters': {'default': {
-            'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-        }},
+            'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',}},
         'handlers': {'wsgi': {
             'class': 'logging.StreamHandler',
             'stream': 'ext://flask.logging.wsgi_errors_stream',
-            'formatter': 'default'
-        }},
+            'formatter': 'default'}},
         'root': {
             'level': 'INFO',
-            'handlers': ['wsgi']
-        }
-    })
+            'handlers': ['wsgi']}})
+
     from app.config import config_by_name
     from app.routes import register_routes
 
